@@ -53,10 +53,10 @@ object TCPConnectionManager {
 class TCPConnectionHandler extends Actor {
   private var myComp: ActorPath = null
   private var opComp: ActorPath = null
-  private var oponent: ActorPath = null
+  private var opponent: ActorPath = null
   private var graph: mutable.Graph[Int, UnDiEdge] = null
   private var token = -1
-  private var whichPlayerAmI: Char = null
+  private var whichPlayerAmI: Char = 'X'
   private var moveNumber = 0
   private var startThinkingTime = 0L
 
@@ -73,40 +73,34 @@ class TCPConnectionHandler extends Actor {
         if(Rules.makeMove(token, nextNode.get, graph)) {
           moveNumber += 1
           token = nextNode.get
-          if(stopThinkingTime - startThinkingTime <= Defs.tl * 1_000_000_000L) {
+          if((stopThinkingTime - startThinkingTime) / 1e9d <= Defs.tl) {
             if(whichPlayerAmI == 'A' && moveNumber == 1) {
               val elist = graph.edges.toList.map(e => (e._1.value, e._2.value))
-              context.actorSelection(oponent) ! ('B', token, oponent, self.path, myComp, elist)
-            } else {  // This is my move. Now, it is my opponent's turn.
-              if(Rules.possibleMoves(token, graph) == 0) {
+              context.actorSelection(opponent) ! ('B', token, opComp, self.path, myComp, elist)
+            } else { // This is my move. Now, it is my opponent's turn.
+              context.actorSelection(opponent) ! token
+              if (Rules.possibleMoves(token, graph) == 0) {
                 context.actorSelection(myComp) ! Write(ByteString("230\n"))
-                context.actorSelection(opComp) ! Write(ByteString("240\n"))
-                context stop self
-              } else {
-                context.actorSelection(oponent) ! token
               }
             }
           } else {
             context.actorSelection(myComp) ! Write(ByteString("241\n"))
             context.actorSelection(opComp) ! Write(ByteString("231\n"))
-            context stop self
           }
         } else {
           context.actorSelection(myComp) ! Write(ByteString(s"999 Illegal move (${nextNode.get})\n"))
-          context.actorSelection(opComp) ! Write(ByteString(s"999 Your opponent sent illegal move\n"))
-          context stop self
+          context.actorSelection(opComp) ! Write(ByteString(s"999 Your opponent made an illegal move\n"))
         }
       } else {
         println(s"Unrecognized command ${decoded} from ${sender().toString()}")
         context.actorSelection(myComp) ! Write(ByteString(s"999 Unrecognized command\n"))
-        context.actorSelection(opComp) ! Write(ByteString(s"999 Your opponent sent wrong msg\n"))
-        context stop self
+        context.actorSelection(opComp) ! Write(ByteString(s"999 Your opponent send wrong msg\n"))
       }
     case info: Tuple6[Char, Int, ActorPath, ActorPath, ActorPath, List[(Int, Int)]] =>
       whichPlayerAmI = info._1
       token = info._2
       myComp = info._3
-      oponent = info._4
+      opponent = info._4
       opComp = info._5
       graph = mutable.Graph.from(0 until Defs.gs, info._6.map(p => p._1 ~ p._2))
       val opis = new StringBuilder(4*graph.size)
@@ -116,9 +110,16 @@ class TCPConnectionHandler extends Actor {
       context.actorSelection(myComp) ! Write(ByteString(opis.toString()))
       startThinkingTime = System.nanoTime
     case move: Int =>
-
+      Rules.makeMove(token, move, graph)
+      token = move
+      if (Rules.possibleMoves(token, graph) == 0) {
+        context.actorSelection(myComp) ! Write(ByteString("240\n"))
+      } else {
+        context.actorSelection(myComp) ! Write(ByteString(s"220 ${move}\n"))
+        startThinkingTime = System.nanoTime
+      }
     case message: ConnectionClosed =>
-      println("Connection has been closed")
+      println(s"Connection with ${self.path.name} has been closed.")
       context stop self
   }
 }
