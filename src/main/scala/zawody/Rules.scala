@@ -11,4 +11,7 @@ object Rules {
       case None => false
     }
   }
+  def possibleMoves(token: Int, graph: mutable.Graph[Int, UnDiEdge]): Int = {
+    graph.get(token).degree
+  }
 }

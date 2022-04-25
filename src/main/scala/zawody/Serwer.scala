@@ -75,9 +75,16 @@ class TCPConnectionHandler extends Actor {
           token = nextNode.get
           if(stopThinkingTime - startThinkingTime <= Defs.tl * 1_000_000_000L) {
             if(whichPlayerAmI == 'A' && moveNumber == 1) {
-
-            } else {
-
+              val elist = graph.edges.toList.map(e => (e._1.value, e._2.value))
+              context.actorSelection(oponent) ! ('B', token, oponent, self.path, myComp, elist)
+            } else {  // This is my move. Now, it is my opponent's turn.
+              if(Rules.possibleMoves(token, graph) == 0) {
+                context.actorSelection(myComp) ! Write(ByteString("230\n"))
+                context.actorSelection(opComp) ! Write(ByteString("240\n"))
+                context stop self
+              } else {
+                context.actorSelection(oponent) ! token
+              }
             }
           } else {
             context.actorSelection(myComp) ! Write(ByteString("241\n"))
@@ -102,14 +109,14 @@ class TCPConnectionHandler extends Actor {
       oponent = info._4
       opComp = info._5
       graph = mutable.Graph.from(0 until Defs.gs, info._6.map(p => p._1 ~ p._2))
-      if(whichPlayerAmI == 'A') {
-      }
       val opis = new StringBuilder(4*graph.size)
       opis.append(s"200 ${graph.nodes.size} ${token} ${graph.edges.size}")
       for (e <- graph.edges) opis.append(s" ${e._1} ${e._2}")
       opis.append("\n")
       context.actorSelection(myComp) ! Write(ByteString(opis.toString()))
       startThinkingTime = System.nanoTime
+    case move: Int =>
+
     case message: ConnectionClosed =>
       println("Connection has been closed")
       context stop self
