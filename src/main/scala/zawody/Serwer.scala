@@ -81,20 +81,24 @@ class TCPConnectionHandler extends Actor {
               context.actorSelection(opponent) ! token
               if (Rules.possibleMoves(token, graph) == 0) {
                 context.actorSelection(myComp) ! Write(ByteString("230\n"))
+                println(s"${myComp.name} vs ${opComp.name}, result 1:0")
               }
             }
           } else {
             context.actorSelection(myComp) ! Write(ByteString("241\n"))
             context.actorSelection(opComp) ! Write(ByteString("231\n"))
+            println(s"${myComp.name} vs ${opComp.name}, result 0:1")
           }
         } else {
           context.actorSelection(myComp) ! Write(ByteString(s"999 Illegal move (${nextNode.get})\n"))
           context.actorSelection(opComp) ! Write(ByteString(s"999 Your opponent made an illegal move\n"))
+          println(s"${myComp.name} vs ${opComp.name}, result 0:1")
         }
       } else {
         println(s"Unrecognized command ${decoded} from ${sender().toString()}")
         context.actorSelection(myComp) ! Write(ByteString(s"999 Unrecognized command\n"))
         context.actorSelection(opComp) ! Write(ByteString(s"999 Your opponent send wrong msg\n"))
+        println(s"${myComp.name} vs ${opComp.name}, result 0:1")
       }
     case info: Tuple6[Char, Int, ActorPath, ActorPath, ActorPath, List[(Int, Int)]] =>
       whichPlayerAmI = info._1
@@ -114,6 +118,7 @@ class TCPConnectionHandler extends Actor {
       token = move
       if (Rules.possibleMoves(token, graph) == 0) {
         context.actorSelection(myComp) ! Write(ByteString("240\n"))
+        println(s"${myComp.name} vs ${opComp.name}, result 0:1")
       } else {
         context.actorSelection(myComp) ! Write(ByteString(s"220 ${move}\n"))
         startThinkingTime = System.nanoTime
