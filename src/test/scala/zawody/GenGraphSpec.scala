@@ -41,12 +41,12 @@ class GenGraphSpec extends AnyFunSpec {
       assert(freq((0, 1)) < freq(2, 3))
       assert(!freq.contains((1, 2)))
     }
-    it("creates a random graph with nodes of degree 2 to 7") {
+    it("creates a random graph with nodes of degree 3 to 7") {
       val list = GenGraph.create(32)
       val g = immutable.Graph.from(0 until 32, list.map(p => p._1 ~ p._2))
       val nodes = g.nodes
       nodes.foreach(node => {
-        assert(node.degree >= 2 && node.degree <= 7)
+        assert(node.degree >= 3 && node.degree <= 7)
       })
     }
     it("creates a larger graph") {
@@ -54,7 +54,7 @@ class GenGraphSpec extends AnyFunSpec {
       val g = immutable.Graph.from(0 until 64, list.map(p => p._1 ~ p._2))
       val nodes = g.nodes
       nodes.foreach(node => {
-        assert(node.degree >= 2 && node.degree <= 7)
+        assert(node.degree >= 3 && node.degree <= 7)
       })
     }
     it("creates a random graph with 100 nodes in an instant") {
@@ -63,6 +63,10 @@ class GenGraphSpec extends AnyFunSpec {
       val g = immutable.Graph.from(0 until 100, list.map(p => p._1 ~ p._2))
       val duration = (System.nanoTime - t1) / 1e9d
       assert(duration < 1.0)
+      val nodes = g.nodes
+      nodes.foreach(node => {
+        assert(node.degree >= 3 && node.degree <= 7)
+      })
     }
   }
 }

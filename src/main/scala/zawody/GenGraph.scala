@@ -56,7 +56,7 @@ object GenGraph {
     var g: immutable.Graph[Int, UnDiEdge] = null
     while(!built) {
       edges.clear()
-      (0 until nodeSize).foreach(idx => d(idx) = Random.nextInt(6) + 2)
+      (0 until nodeSize).foreach(idx => d(idx) = Random.nextInt(5) + 3)
       val m = d.sum/2
       var e: Option[(Int, Int)] = None
       do {
